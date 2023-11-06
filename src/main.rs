@@ -1,77 +1,104 @@
 #[derive(PartialEq, Copy, Clone, Debug)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: usize,
+    y: usize,
+    size: usize,
 }
 
 impl Point {
-    fn new(x: i32, y: i32) -> Point {
-        Point { x, y }
+    fn new(x: usize, y: usize, size: usize) -> Point {
+        debug_assert!(x <= size, "x = {x}");
+        debug_assert!(y <= size, "y = {y}");
+        Point { x, y, size }
     }
 
-    fn walk_right(&self) -> Point {
-        Point::new(self.x + 1, self.y)
+    fn index(&self) -> usize {
+        self.x * (self.size + 1) + self.y
     }
 
-    fn walk_left(&self) -> Point {
-        Point::new(self.x - 1, self.y)
+    fn right(&self) -> Option<Point> {
+        if self.x < self.size {
+            Some(Point::new(self.x + 1, self.y, self.size))
+        } else {
+            None
+        }
     }
 
-    fn walk_up(&self) -> Point {
-        Point::new(self.x, self.y + 1)
+    fn left(&self) -> Option<Point> {
+        if self.x > 0 {
+            Some(Point::new(self.x - 1, self.y, self.size))
+        } else {
+            None
+        }
     }
 
-    fn walk_down(&self) -> Point {
-        Point::new(self.x, self.y - 1)
+    fn up(&self) -> Option<Point> {
+        if self.y < self.size {
+            Some(Point::new(self.x, self.y + 1, self.size))
+        } else {
+            None
+        }
+    }
+
+    fn down(&self) -> Option<Point> {
+        if self.y > 0 {
+            Some(Point::new(self.x, self.y - 1, self.size))
+        } else {
+            None
+        }
     }
 }
 
 #[derive(Clone, Debug)]
 struct Route {
-    history: Vec<Point>,
-    size: i32,
+    visited: Vec<bool>,
+    last: Point,
 }
 
 impl Route {
-    fn new(size: i32) -> Route {
+    fn new(size: usize) -> Route {
+        let mut visited = vec![false; (size + 1) * (size + 1)];
+        visited[Point::new(0, 0, size).index()] = true;
         Route {
-            history: vec![Point::new(0, 0)],
-            size,
+            visited,
+            last: Point::new(0, 0, size),
         }
     }
 
-    fn now(&self) -> &Point {
-        self.history.last().unwrap()
+    fn walk(&self, point_arg: Option<Point>) -> Option<Point> {
+        if let Some(point) = point_arg {
+            if !self.visited[point.index()] {
+                return Some(point);
+            }
+        }
+        None
     }
 
-    fn can_walk_up(&self) -> bool {
-        let now = self.now();
-        now.y != self.size && !self.history.contains(&now.walk_up())
+    fn walk_up(&self) -> Option<Point> {
+        self.walk(self.last.up())
     }
 
-    fn can_walk_down(&self) -> bool {
-        let now = self.now();
-        now.y != 0 && !self.history.contains(&now.walk_down())
+    fn walk_down(&self) -> Option<Point> {
+        self.walk(self.last.down())
     }
 
-    fn can_walk_right(&self) -> bool {
-        let now = self.now();
-        now.x != self.size && !self.history.contains(&now.walk_right())
+    fn walk_right(&self) -> Option<Point> {
+        self.walk(self.last.right())
     }
 
-    fn can_walk_left(&self) -> bool {
-        let now = self.now();
-        now.x != 0 && !self.history.contains(&now.walk_left())
+    fn walk_left(&self) -> Option<Point> {
+        self.walk(self.last.left())
     }
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let size: i32 = args[1].parse().expect("arg[1] parse error.");
+    let size: usize = args[1].parse().expect("arg[1] parse error.");
 
     let mut result = 0u64;
 
     let mut routes_stack = vec![Route::new(size)];
+    let goal = Point::new(size, size, size);
 
     loop {
         if routes_stack.is_empty() {
@@ -80,35 +107,47 @@ fn main() {
 
         let route = routes_stack.pop().unwrap();
 
-        if route.now() == &(Point { x: size, y: size }) {
+        if route.last == goal {
             result += 1;
             continue;
         }
 
-        if route.can_walk_right() {
+        let mut walk = |point: Point| {
             let mut new_route = route.clone();
-            new_route.history.push(new_route.now().walk_right());
+            new_route.last = point;
+            new_route.visited[point.index()] = true;
             routes_stack.push(new_route);
+        };
+
+        if let Some(point) = route.walk_right() {
+            walk(point);
         }
 
-        if route.can_walk_left() {
-            let mut new_route = route.clone();
-            new_route.history.push(new_route.now().walk_left());
-            routes_stack.push(new_route);
+        if let Some(point) = route.walk_left() {
+            walk(point);
         }
 
-        if route.can_walk_up() {
-            let mut new_route = route.clone();
-            new_route.history.push(new_route.now().walk_up());
-            routes_stack.push(new_route);
+        if let Some(point) = route.walk_up() {
+            walk(point);
         }
 
-        if route.can_walk_down() {
-            let mut new_route = route.clone();
-            new_route.history.push(new_route.now().walk_down());
-            routes_stack.push(new_route);
+        if let Some(point) = route.walk_down() {
+            walk(point);
         }
     }
 
     println!("result = {result}");
 }
+
+/*
+Example:
+
+labadmin@vc07-ubuntu:~/kumiawase-onesan$ time cargo run --release -- 5
+    Finished release [optimized] target(s) in 0.00s
+     Running `target/release/kumiawase-onesan 5`
+result = 1262816
+
+real    0m0.825s
+user    0m0.811s
+sys     0m0.013s
+*/
