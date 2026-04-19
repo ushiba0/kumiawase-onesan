@@ -59,12 +59,16 @@ struct Route {
 }
 
 impl Route {
+    /// size x size の格子状のマス目で、訪れたことのある格子点を保持する。
+    /// スタートは (0, 0), ゴールは (size, size).
+    /// 対称性から、一歩目は右に移動 (1, 0) で固定し、結果は後で 2 倍する。
     fn new(size: usize) -> Route {
         let mut visited = vec![false; (size + 1) * (size + 1)];
         visited[Point::new(0, 0, size).index()] = true;
+        visited[Point::new(1, 0, size).index()] = true;
         Route {
             visited,
-            last: Point::new(0, 0, size),
+            last: Point::new(1, 0, size),
         }
     }
 
@@ -82,6 +86,10 @@ impl Route {
     }
 
     fn walk_down(&self) -> Option<Point> {
+        // 右端の壁に到達しているのに下に移動すると、ゴールにたどり着けなくなる。
+        if self.last.x == self.last.size {
+            return None;
+        }
         self.walk(self.last.down())
     }
 
@@ -90,6 +98,10 @@ impl Route {
     }
 
     fn walk_left(&self) -> Option<Point> {
+        // 上側の壁に到達しているのに左に移動すると、ゴールにたどり着けなくなる。
+        if self.last.y == self.last.size {
+            return None;
+        }
         self.walk(self.last.left())
     }
 }
@@ -107,11 +119,11 @@ fn main() {
 
     // Ctrl+C ハンドラ
     ctrlc::set_handler(move || {
-        let current_count = r_clone.load(Ordering::Relaxed);
-        let elapsed_sec = start_time.elapsed().as_secs();
+        let current_count = r_clone.load(Ordering::Relaxed) * 2;
         println!(
-            "{size} x {size} の現在の進捗: {current_count} とおり. わっしょいわっしょい. 経過時間: {elapsed_sec} 秒"
-        );
+            "{size} x {size} の現在の進捗: {current_count} とおり. わっしょいわっしょい. 経過時間: {:.3} 秒"
+        ,start_time.elapsed().as_secs_f64()
+    );
     })
     .expect("Error setting Ctrl-C handler");
 
@@ -156,11 +168,12 @@ fn main() {
     let end_time = std::time::Instant::now();
     let elapsed = end_time.duration_since(start_time);
     let final_count = result.load(Ordering::Relaxed);
+    let final_count = final_count * 2;
 
     println!("{size} x {size} のときは {final_count} とおりね！");
     println!(
-        "所要時間: {} ミリ秒 ({} 秒)",
+        "所要時間: {} ミリ秒 ({:.3} 秒)",
         elapsed.as_millis(),
-        elapsed.as_secs()
+        elapsed.as_secs_f64(),
     );
 }
