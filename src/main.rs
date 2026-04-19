@@ -1,3 +1,6 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+
 #[derive(PartialEq, Copy, Clone, Debug)]
 struct Point {
     x: usize,
@@ -93,12 +96,29 @@ impl Route {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let size: usize = args[1].parse().expect("arg[1] parse error.");
+    let size: usize = args
+        .get(1)
+        .and_then(|s| s.parse().ok())
+        .expect("Usage: <size>");
 
-    let mut result = 0u64;
+    let start_time = std::time::Instant::now();
+    let result = Arc::new(AtomicU64::new(0));
+    let r_clone = Arc::clone(&result);
+
+    // Ctrl+C ハンドラ
+    ctrlc::set_handler(move || {
+        let current_count = r_clone.load(Ordering::Relaxed);
+        let elapsed_sec = start_time.elapsed().as_secs();
+        println!(
+            "{size} x {size} の現在の進捗: {current_count} とおり. わっしょいわっしょい. 経過時間: {elapsed_sec} 秒"
+        );
+    })
+    .expect("Error setting Ctrl-C handler");
 
     let mut routes_stack = vec![Route::new(size)];
     let goal = Point::new(size, size, size);
+
+    println!("{size} x {size} の計算を開始するわよ...(Ctrl+C で進捗表示)");
 
     loop {
         if routes_stack.is_empty() {
@@ -108,7 +128,7 @@ fn main() {
         let route = routes_stack.pop().unwrap();
 
         if route.last == goal {
-            result += 1;
+            result.fetch_add(1, Ordering::Relaxed);
             continue;
         }
 
@@ -122,32 +142,25 @@ fn main() {
         if let Some(point) = route.walk_right() {
             walk(point);
         }
-
         if let Some(point) = route.walk_left() {
             walk(point);
         }
-
         if let Some(point) = route.walk_up() {
             walk(point);
         }
-
         if let Some(point) = route.walk_down() {
             walk(point);
         }
     }
 
-    println!("result = {result}");
+    let end_time = std::time::Instant::now();
+    let elapsed = end_time.duration_since(start_time);
+    let final_count = result.load(Ordering::Relaxed);
+
+    println!("{size} x {size} のときは {final_count} とおりね！");
+    println!(
+        "所要時間: {} ミリ秒 ({} 秒)",
+        elapsed.as_millis(),
+        elapsed.as_secs()
+    );
 }
-
-/*
-Example:
-
-labadmin@vc07-ubuntu:~/kumiawase-onesan$ time cargo run --release -- 5
-    Finished release [optimized] target(s) in 0.00s
-     Running `target/release/kumiawase-onesan 5`
-result = 1262816
-
-real    0m0.825s
-user    0m0.811s
-sys     0m0.013s
-*/

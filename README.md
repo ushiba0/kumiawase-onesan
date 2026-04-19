@@ -2,21 +2,29 @@
 お姉さんが実行したシンプルな数え上げプログラム。
 
 ```
-$ cargo run -- 4
-    Finished dev [unoptimized + debuginfo] target(s) in 0.02s
-     Running `target/debug/kumiawase-onesan 4`
-result = 8512
+$ cargo run -q  -- 2
+2 x 2 の計算を開始するわよ...(Ctrl+C で進捗表示)
+2 x 2 のときは 12 とおりね！
+所要時間: 0 ミリ秒 (0 秒)
 
-$ cargo run --release -- 5
-    Finished release [optimized] target(s) in 0.00s
-     Running `target/release/kumiawase-onesan 5`
-result = 1262816
-```
+$ cargo run -q  -- 3
+3 x 3 の計算を開始するわよ...(Ctrl+C で進捗表示)
+3 x 3 のときは 184 とおりね！
+所要時間: 0 ミリ秒 (0 秒)
 
-```
-% time cargo run --release -- 6
-    Finished release [optimized] target(s) in 0.00s
-     Running `target/release/kumiawase-onesan 6`
-result = 575780564
-cargo run --release -- 6  2175.08s user 8.26s system 99% cpu 36:27.15 total
+$ cargo run -q  -- 4
+4 x 4 の計算を開始するわよ...(Ctrl+C で進捗表示)
+4 x 4 のときは 8512 とおりね！
+所要時間: 14 ミリ秒 (0 秒)
+
+$ cargo run -q  -- 5
+5 x 5 の計算を開始するわよ...(Ctrl+C で進捗表示)
+5 x 5 のときは 1262816 とおりね！
+所要時間: 2720 ミリ秒 (2 秒)
+
+$ /tmp/kumiawase-onesan 6
+6 x 6 の計算を開始するわよ...(Ctrl+C で進捗表示)
+6 x 6 のときは 575780564 とおりね！
+所要時間: 170635 ミリ秒 (170 秒)
+
 ```
