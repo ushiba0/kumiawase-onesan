@@ -72,20 +72,23 @@ impl Route {
         }
     }
 
-    fn walk(&self, point_arg: Option<Point>) -> Option<Point> {
+    fn walk(&self, point_arg: Option<Point>) -> Option<Self> {
         if let Some(point) = point_arg {
             if !self.visited[point.index()] {
-                return Some(point);
+                let mut new_route = self.clone();
+                new_route.last = point;
+                new_route.visited[point.index()] = true;
+                return Some(new_route);
             }
         }
         None
     }
 
-    fn walk_up(&self) -> Option<Point> {
+    fn walk_up(&self) -> Option<Self> {
         self.walk(self.last.up())
     }
 
-    fn walk_down(&self) -> Option<Point> {
+    fn walk_down(&self) -> Option<Self> {
         // 右端(左側)の壁に到達しているのに下に移動すると、ゴールにたどり着けなくなる。
         if self.last.x == self.last.size || self.last.x == 0 {
             return None;
@@ -93,11 +96,11 @@ impl Route {
         self.walk(self.last.down())
     }
 
-    fn walk_right(&self) -> Option<Point> {
+    fn walk_right(&self) -> Option<Self> {
         self.walk(self.last.right())
     }
 
-    fn walk_left(&self) -> Option<Point> {
+    fn walk_left(&self) -> Option<Self> {
         // 上側(下側)の壁に到達しているのに左に移動すると、ゴールにたどり着けなくなる。
         if self.last.y == self.last.size || self.last.y == 0 {
             return None;
@@ -146,19 +149,16 @@ fn main() {
         }
 
         // 上下左右で行動可能な点に移動し、スタックに積む。
-        for &point in [
+        for route in [
             route.walk_right(),
             route.walk_left(),
             route.walk_up(),
             route.walk_down(),
         ]
-        .iter()
+        .into_iter()
         .flatten()
         {
-            let mut new_route = route.clone();
-            new_route.last = point;
-            new_route.visited[point.index()] = true;
-            routes_stack.push(new_route);
+            routes_stack.push(route);
         }
     }
 
