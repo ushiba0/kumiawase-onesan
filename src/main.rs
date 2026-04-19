@@ -86,8 +86,8 @@ impl Route {
     }
 
     fn walk_down(&self) -> Option<Point> {
-        // 右端の壁に到達しているのに下に移動すると、ゴールにたどり着けなくなる。
-        if self.last.x == self.last.size {
+        // 右端(左側)の壁に到達しているのに下に移動すると、ゴールにたどり着けなくなる。
+        if self.last.x == self.last.size || self.last.x == 0 {
             return None;
         }
         self.walk(self.last.down())
@@ -98,8 +98,8 @@ impl Route {
     }
 
     fn walk_left(&self) -> Option<Point> {
-        // 上側の壁に到達しているのに左に移動すると、ゴールにたどり着けなくなる。
-        if self.last.y == self.last.size {
+        // 上側(下側)の壁に到達しているのに左に移動すると、ゴールにたどり着けなくなる。
+        if self.last.y == self.last.size || self.last.y == 0 {
             return None;
         }
         self.walk(self.last.left())
@@ -171,9 +171,5 @@ fn main() {
     let final_count = final_count * 2;
 
     println!("{size} x {size} のときは {final_count} とおりね！");
-    println!(
-        "所要時間: {} ミリ秒 ({:.3} 秒)",
-        elapsed.as_millis(),
-        elapsed.as_secs_f64(),
-    );
+    println!("所要時間: {:.3} 秒", elapsed.as_secs_f64());
 }
