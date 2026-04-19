@@ -119,7 +119,7 @@ fn main() {
 
     // Ctrl+C ハンドラ
     ctrlc::set_handler(move || {
-        let current_count = r_clone.load(Ordering::Relaxed) * 2;
+        let current_count = r_clone.load(Ordering::Relaxed) ;
         println!(
             "{size} x {size} の現在の進捗: {current_count} とおり. わっしょいわっしょい. 経過時間: {:.3} 秒"
         ,start_time.elapsed().as_secs_f64()
@@ -140,35 +140,31 @@ fn main() {
         let route = routes_stack.pop().unwrap();
 
         if route.last == goal {
-            result.fetch_add(1, Ordering::Relaxed);
+            // 対称性を使用しているので、ゴールに到達したら 2 加算する。
+            result.fetch_add(2, Ordering::Relaxed);
             continue;
         }
 
-        let mut walk = |point: Point| {
+        // 上下左右で行動可能な点に移動し、スタックに積む。
+        for &point in [
+            route.walk_right(),
+            route.walk_left(),
+            route.walk_up(),
+            route.walk_down(),
+        ]
+        .iter()
+        .flatten()
+        {
             let mut new_route = route.clone();
             new_route.last = point;
             new_route.visited[point.index()] = true;
             routes_stack.push(new_route);
-        };
-
-        if let Some(point) = route.walk_right() {
-            walk(point);
-        }
-        if let Some(point) = route.walk_left() {
-            walk(point);
-        }
-        if let Some(point) = route.walk_up() {
-            walk(point);
-        }
-        if let Some(point) = route.walk_down() {
-            walk(point);
         }
     }
 
     let end_time = std::time::Instant::now();
     let elapsed = end_time.duration_since(start_time);
     let final_count = result.load(Ordering::Relaxed);
-    let final_count = final_count * 2;
 
     println!("{size} x {size} のときは {final_count} とおりね！");
     println!("所要時間: {:.3} 秒", elapsed.as_secs_f64());
